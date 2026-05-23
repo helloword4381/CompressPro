@@ -84,17 +84,30 @@ Section "右键菜单" SEC_CONTEXT
     WriteRegStr HKCR "*\shell\CompressPro" "Icon" "$INSTDIR\CompressPro.exe,0"
     WriteRegStr HKCR "*\shell\CompressPro\command" "" '"$INSTDIR\CompressPro.exe" "open" "%1"'
 
-    WriteRegStr HKCR "CompressPro.7z\shell\extract" "" "解压到..."
-    WriteRegStr HKCR "CompressPro.7z\shell\extract" "Icon" "$INSTDIR\CompressPro.exe,0"
-    WriteRegStr HKCR "CompressPro.7z\shell\extract\command" "" '"$INSTDIR\CompressPro.exe" "extract" "%1"'
+    ; 所有文件右键 — 解压到
+    WriteRegStr HKCR "*\shell\CompressProExtract" "" "解压到..."
+    WriteRegStr HKCR "*\shell\CompressProExtract" "Icon" "$INSTDIR\CompressPro.exe,0"
+    WriteRegStr HKCR "*\shell\CompressProExtract\command" "" '"$INSTDIR\CompressPro.exe" "extract" "%1"'
 
-    WriteRegStr HKCR "CompressPro.7z\shell\extracthere" "" "解压到当前目录"
-    WriteRegStr HKCR "CompressPro.7z\shell\extracthere" "Icon" "$INSTDIR\CompressPro.exe,0"
-    WriteRegStr HKCR "CompressPro.7z\shell\extracthere\command" "" '"$INSTDIR\CompressPro.exe" "extracthere" "%1"'
+    ; 所有文件右键 — 解压到当前目录
+    WriteRegStr HKCR "*\shell\CompressProExtractHere" "" "解压到当前目录"
+    WriteRegStr HKCR "*\shell\CompressProExtractHere" "Icon" "$INSTDIR\CompressPro.exe,0"
+    WriteRegStr HKCR "*\shell\CompressProExtractHere\command" "" '"$INSTDIR\CompressPro.exe" "extracthere" "%1"'
 
-    WriteRegStr HKCR "AllFilesystemObjects\shell\CompressProAdd" "" "添加到 CompressPro 压缩包..."
-    WriteRegStr HKCR "AllFilesystemObjects\shell\CompressProAdd" "Icon" "$INSTDIR\CompressPro.exe,0"
-    WriteRegStr HKCR "AllFilesystemObjects\shell\CompressProAdd\command" "" '"$INSTDIR\CompressPro.exe" "add" "%1"'
+    ; 文件右键 — 添加到压缩包
+    WriteRegStr HKCR "*\shell\CompressProAdd" "" "添加到 CompressPro 压缩包..."
+    WriteRegStr HKCR "*\shell\CompressProAdd" "Icon" "$INSTDIR\CompressPro.exe,0"
+    WriteRegStr HKCR "*\shell\CompressProAdd\command" "" '"$INSTDIR\CompressPro.exe" "add" "%1"'
+
+    ; 文件夹右键 — 添加到压缩包
+    WriteRegStr HKCR "Directory\shell\CompressProAdd" "" "添加到 CompressPro 压缩包..."
+    WriteRegStr HKCR "Directory\shell\CompressProAdd" "Icon" "$INSTDIR\CompressPro.exe,0"
+    WriteRegStr HKCR "Directory\shell\CompressProAdd\command" "" '"$INSTDIR\CompressPro.exe" "add" "%1"'
+
+    ; 文件夹右键 — 解压到此
+    WriteRegStr HKCR "Directory\shell\CompressProExtractHere" "" "解压到当前目录"
+    WriteRegStr HKCR "Directory\shell\CompressProExtractHere" "Icon" "$INSTDIR\CompressPro.exe,0"
+    WriteRegStr HKCR "Directory\shell\CompressProExtractHere\command" "" '"$INSTDIR\CompressPro.exe" "extracthere" "%1"'
 SectionEnd
 
 ; ─── 文件关联 ───
@@ -166,9 +179,14 @@ Section "Uninstall"
     ReadRegDWORD $0 HKLM "${REG_COMPRESS}" "InstalledContext"
     IntCmp $0 1 done_ctx
     DeleteRegKey HKCR "*\shell\CompressPro"
+    DeleteRegKey HKCR "*\shell\CompressProExtract"
+    DeleteRegKey HKCR "*\shell\CompressProExtractHere"
+    DeleteRegKey HKCR "*\shell\CompressProAdd"
+    DeleteRegKey HKCR "Directory\shell\CompressProAdd"
+    DeleteRegKey HKCR "Directory\shell\CompressProExtractHere"
+    DeleteRegKey HKCR "AllFilesystemObjects\shell\CompressProAdd"
     DeleteRegKey HKCR "CompressPro.7z\shell\extract"
     DeleteRegKey HKCR "CompressPro.7z\shell\extracthere"
-    DeleteRegKey HKCR "AllFilesystemObjects\shell\CompressProAdd"
     done_ctx:
 
     ; 删除文件关联
