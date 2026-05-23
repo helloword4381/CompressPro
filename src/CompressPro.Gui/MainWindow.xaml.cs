@@ -24,15 +24,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        // SevenZipService (7z.dll) → 回退 SevenZipExeService (7z.exe)
-        try
-        {
-            _sevenZip = new SevenZipService();
-        }
-        catch
-        {
-            _sevenZip = new SevenZipExeService();
-        }
+        // 使用 7z.exe 进程调用（自带 7z.exe，无需安装 7-Zip）
+        // 后续集成 SevenZipSharp 后可切换到 SevenZipService
+        _sevenZip = new SevenZipExeService();
 
         // 拖拽打开
         AllowDrop = true;
@@ -154,14 +148,14 @@ public partial class MainWindow : Window
             // 启用相关按钮
             SetArchiveButtonsEnabled(true);
         }
-        catch (NotImplementedException)
+        catch (FileNotFoundException)
         {
             MessageBox.Show(
-                "SevenZipSharp 尚未集成，当前使用 7z.exe 模式的回退方案。\n" +
-                "请确保已安装 7-Zip (https://7-zip.org/) 或放置 7z.dll 到程序目录。",
-                "功能待实现",
+                "未找到 7z.exe 运行引擎。\n" +
+                "请重新运行安装程序修复，或从 https://www.7-zip.org/ 安装 7-Zip。",
+                "缺少引擎",
                 MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                MessageBoxImage.Error);
             StatusText.Text = "就绪";
         }
         catch (Exception ex)
