@@ -10,6 +10,8 @@
     <RootNamespace>CompressPro.Gui</RootNamespace>
     <LangVersion>12</LangVersion>
     <SupportedOSPlatformVersion>6.1</SupportedOSPlatformVersion>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <Description>轻量、高效的压缩解压工具</Description>
     <Company>CompressPro</Company>
     <Product>CompressPro</Product>

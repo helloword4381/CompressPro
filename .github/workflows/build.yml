@@ -25,63 +25,48 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      # ─── 下载 7z.dll ───
+      # ─── 1. 下载 7z.dll ───
       - name: Download 7z.dll/7z.exe
         shell: pwsh
         run: |
           $ver = "2601"
           $url = "https://www.7-zip.org/a/7z$ver-extra.7z"
           $archive = "$env:TEMP\7z$ver-extra.7z"
-
-          Write-Host "Downloading $url ..."
           Invoke-WebRequest -Uri $url -OutFile $archive -UseBasicParsing
-
-          Write-Host "Extracting ..."
           & 7z x $archive -o"$env:TEMP\7z-extra" -y | Out-Null
-
           New-Item -ItemType Directory -Force -Path "external" | Out-Null
           $dll = Get-ChildItem "$env:TEMP\7z-extra" -Recurse -Include "7z.dll","7za.dll" | Select-Object -First 1
           $exe = Get-ChildItem "$env:TEMP\7z-extra" -Recurse -Include "7z.exe","7za.exe" | Select-Object -First 1
-
-          if ($dll) { Copy-Item $dll.FullName "external\7z.dll" -Force; Write-Host "[OK] 7z.dll" }
+          if ($dll) { Copy-Item $dll.FullName "external\7z.dll" -Force }
           else { Write-Host "[ERROR] 7z.dll not found"; exit 1 }
-          if ($exe) { Copy-Item $exe.FullName "external\7z.exe" -Force; Write-Host "[OK] 7z.exe" }
+          if ($exe) { Copy-Item $exe.FullName "external\7z.exe" -Force }
 
-      # ─── 编译程序 ───
-      - name: Restore
-        run: dotnet restore
-
-      - name: Build Release
-        run: dotnet build -c Release --no-restore
-
-      # ─── 拷贝依赖到输出目录 ───
-      - name: Copy runtime deps to output
+      # ─── 2. 自包含发布 (打包 .NET 运行时) ───
+      - name: Publish self-contained
         shell: pwsh
         run: |
-          $out = "src\CompressPro.Gui\bin\Release\net8.0-windows"
-          Copy-Item "external\7z.dll" "$out\" -Force
-          Copy-Item "external\7z.exe" "$out\" -Force
-          Write-Host "[OK] Dependencies copied to $out"
+          dotnet restore
+          dotnet publish src\CompressPro.Gui\CompressPro.Gui.csproj `
+            -c Release -r win-x64 --self-contained -o publish-app
+          Copy-Item "external\7z.dll" "publish-app\" -Force
+          Copy-Item "external\7z.exe" "publish-app\" -Force
+          $size = (Get-ChildItem "publish-app" -Recurse -File | Measure-Object -Property Length -Sum).Sum
+          Write-Host "[OK] Self-contained app: $([math]::Round($size/1MB, 1)) MB"
 
-      # ─── 构建安装包 (NSIS) ───
+      # ─── 3. 构建安装包 ───
       - name: Build installer
         shell: pwsh
         run: |
-          # windows-latest has choco pre-installed
           choco install nsis -y --no-progress --limit-output 2>$null
           $env:Path += ";${env:ProgramFiles(x86)}\NSIS"
-
           makensis "installer\setup.nsi"
           if (Test-Path "installer\CompressPro_Setup.exe") {
               Copy-Item "installer\CompressPro_Setup.exe" "CompressPro_Setup.exe" -Force
               $size = (Get-Item "CompressPro_Setup.exe").Length
-              Write-Host "[OK] Installer built: $size bytes"
-          } else {
-              Write-Host "[ERROR] Installer build failed"
-              exit 1
-          }
+              Write-Host "[OK] Installer: $([math]::Round($size/1MB, 1)) MB"
+          } else { Write-Host "[ERROR] Installer build failed"; exit 1 }
 
-      # ─── 上传安装包 ───
+      # ─── 4. 上传安装包 ───
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
@@ -89,7 +74,7 @@ jobs:
           path: CompressPro_Setup.exe
           retention-days: 90
 
-      # ─── 创建 Release ───
+      # ─── 5. 创建 Release ───
       - name: Create Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -97,22 +82,17 @@ jobs:
           tag_name: v1.0.${{ github.run_number }}
           name: CompressPro v1.0.${{ github.run_number }}
           body: |
-            🗜️ **CompressPro** - Lightweight archive utility
+            🗜️ **CompressPro** - 轻量压缩解压工具
 
-            ## Install
-            Download **CompressPro_Setup.exe**, run it, and follow the wizard.
-            No need to install 7-Zip separately - everything is bundled.
+            下载 **CompressPro_Setup.exe** 双击安装，无需 .NET Runtime，无需 7-Zip。
 
-            ## What's new
-            - Auto-build: ${{ github.sha }}
-            - Build time: ${{ github.event.head_commit.timestamp }}
-
-            ## Features
-            - Context menu integration (right-click)
-            - File association (7z/zip/rar/tar/iso...)
-            - AES-256 encryption
-            - 30+ archive formats via 7-Zip engine
-            - Control Panel uninstall support
+            ## 特性
+            - 自包含：内置 .NET 运行时 + 7-Zip 引擎
+            - 右键菜单（安装时可勾选）
+            - 文件格式关联（7z/zip/rar/tar/iso...）
+            - AES-256 加密
+            - 30+ 压缩格式
+            - 控制面板卸载
           files: CompressPro_Setup.exe
           fail_on_unmatched_files: false
           generate_release_notes: false
