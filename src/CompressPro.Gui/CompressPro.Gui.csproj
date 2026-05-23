@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>CompressPro</AssemblyName>
+    <RootNamespace>CompressPro.Gui</RootNamespace>
+    <LangVersion>12</LangVersion>
+    <SupportedOSPlatformVersion>6.1</SupportedOSPlatformVersion>
+    <Description>轻量、高效的压缩解压工具</Description>
+    <Company>CompressPro</Company>
+    <Product>CompressPro</Product>
+    <Copyright>Copyright © 2024</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CompressPro.Core\CompressPro.Core.csproj" />
+  </ItemGroup>
+
+  <!-- ═══════════════════════════════════════════════
+       7z.dll → 输出目录 (由 build.bat 负责下载，gitignored)
+       ═══════════════════════════════════════════════ -->
+  <ItemGroup>
+    <None Include="..\..\external\7z.dll" Link="7z.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Condition="Exists('..\..\external\7z.dll')" />
+  </ItemGroup>
+
+</Project>

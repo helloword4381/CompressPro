@@ -1,0 +1,80 @@
+name: Build CompressPro
+
+on:
+  workflow_dispatch:      # 手动触发
+  push:
+    branches: [main]      # push 到 main 时自动构建
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest   # WPF 需要 Windows
+    timeout-minutes: 15
+
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Download 7z.dll + 7z.exe (7-Zip Extra)
+        shell: pwsh
+        run: |
+          Write-Host "Downloading 7z2409-extra.7z ..."
+          Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2409-extra.7z" `
+            -OutFile "$env:TEMP\7z2409-extra.7z" -UseBasicParsing
+
+          Write-Host "Extracting ..."
+          # GitHub Actions 的 windows-latest 预装了 7-Zip
+          7z x "$env:TEMP\7z2409-extra.7z" -o"$env:TEMP\7z-extra" -y | Out-Null
+
+          Write-Host "Copying to external/ ..."
+          New-Item -ItemType Directory -Force -Path "external"
+          Copy-Item "$env:TEMP\7z-extra\x64\7z.dll" "external\" -Force
+          Copy-Item "$env:TEMP\7z-extra\x64\7z.exe" "external\" -Force
+          Write-Host "7z.dll ready: $(Get-Item 'external\7z.dll').Length bytes"
+
+      - name: Restore NuGet packages
+        run: dotnet restore
+
+      - name: Build Release
+        run: dotnet build -c Release --no-restore
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: CompressPro-Release
+          path: src/CompressPro.Gui/bin/Release/net8.0-windows/
+          retention-days: 30
+
+      # ─── 可选: 自动创建 Release ───
+      - name: Create Release (on push only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: 构建 #${{ github.run_number }}
+          body: |
+            🗜️ CompressPro 自动构建
+            
+            - 构建时间: ${{ github.event.head_commit.timestamp }}
+            - 提交: ${{ github.sha }}
+            
+            ## 下载
+            解压后直接运行 CompressPro.exe，无需安装 7-Zip。
+            已内置 7z.dll + 7z.exe。
+          files: |
+            src/CompressPro.Gui/bin/Release/net8.0-windows/CompressPro.exe
+            src/CompressPro.Gui/bin/Release/net8.0-windows/*.dll
+            src/CompressPro.Gui/bin/Release/net8.0-windows/*.json
+          fail_on_unmatched_files: false
+          generate_release_notes: false
+          make_latest: true

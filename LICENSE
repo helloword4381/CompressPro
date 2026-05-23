@@ -1,0 +1,36 @@
+GNU Lesser General Public License
+Version 2.1, February 1999
+
+Copyright (C) 1991, 1999 Free Software Foundation, Inc.
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
+
+[This is the first released version of the Lesser GPL. It also counts
+as the successor of the GNU Library Public License, version 2, hence
+the version number 2.1.]
+
+Preamble
+...
+
+The full LGPL 2.1 license text is available at:
+https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt
+
+──────────────────────────────────────────────────────
+
+CompressPro - Lightweight archive utility
+Copyright (C) 2024 CompressPro Contributors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 2.1 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Lesser General Public License for more details.
+
+The 7-Zip engine (7z.dll) bundled with this software is licensed
+under the LGPL-2.1 license as well. See https://7-zip.org/ for details.

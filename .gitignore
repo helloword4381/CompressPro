@@ -1,0 +1,38 @@
+# ── .NET ──
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+*.vs/
+.vscode/
+*.sln.docstates
+*.nupkg
+TestResults/
+
+# ── Build ──
+packages/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+
+# ── IDE ──
+.idea/
+*.swp
+*~
+*.userprefs
+
+# ── OS ──
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# ── CompressPro 特定 ──
+# 7z.dll 和 7z.exe 是运行时依赖，由 build.bat 自动下载
+external/7z.dll
+external/7z.exe
+external/*.7z
+external/*.exe
+external/*.zip
+*.7z

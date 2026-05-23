@@ -1,0 +1,226 @@
+<Window x:Class="CompressPro.Gui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:CompressPro.Gui.Converters"
+        Title="CompressPro"
+        Width="960" Height="640"
+        MinWidth="720" MinHeight="480"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <conv:FileSizeConverter x:Key="FileSizeConverter" />
+        <conv:IconConverter x:Key="IconConverter" />
+        <conv:RatioConverter x:Key="RatioConverter" />
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True">
+        <!-- ════════ 菜单栏 ════════ -->
+        <Menu DockPanel.Dock="Top" FontSize="13">
+            <!-- 文件菜单 -->
+            <MenuItem Header="文件(_F)">
+                <MenuItem Header="打开压缩包(_O)..." InputGestureText="Ctrl+O"
+                          Click="BtnOpen_Click" />
+                <Separator />
+                <MenuItem Header="退出(_X)" Click="MenuExit_Click" />
+            </MenuItem>
+
+            <!-- 操作菜单 -->
+            <MenuItem Header="操作(_A)">
+                <MenuItem x:Name="MenuAdd" Header="添加文件(_A)..." IsEnabled="False"
+                          Click="BtnAdd_Click" />
+                <MenuItem x:Name="MenuExtract" Header="解压到(_E)..." IsEnabled="False"
+                          Click="BtnExtract_Click" />
+                <MenuItem x:Name="MenuExtractHere" Header="解压到当前目录(_H)" IsEnabled="False"
+                          Click="BtnExtractHere_Click" />
+                <Separator />
+                <MenuItem x:Name="MenuTest" Header="测试压缩包(_T)" IsEnabled="False"
+                          Click="BtnTest_Click" />
+                <MenuItem x:Name="MenuDelete" Header="删除文件(_D)" IsEnabled="False"
+                          Click="BtnDelete_Click" />
+                <Separator />
+                <MenuItem x:Name="MenuInfo" Header="压缩包信息(_I)" IsEnabled="False"
+                          Click="BtnInfo_Click" />
+            </MenuItem>
+
+            <!-- 帮助菜单 -->
+            <MenuItem Header="帮助(_H)">
+                <MenuItem Header="帮助(_H)" Click="MenuHelp_Click" />
+                <MenuItem Header="检查更新(_U)..." Click="MenuCheckUpdate_Click" />
+                <Separator />
+                <MenuItem Header="关于 CompressPro(_A)..." Click="MenuAbout_Click" />
+            </MenuItem>
+        </Menu>
+
+        <!-- ════════ 工具栏 (第二行) ════════ -->
+        <ToolBar DockPanel.Dock="Top" Band="1" BandIndex="1">
+            <Button x:Name="BtnOpen" ToolTip="打开压缩包 (Ctrl+O)" Click="BtnOpen_Click"
+                    MinWidth="60">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📂" FontSize="16" />
+                    <TextBlock Margin="4,0,0,0" VerticalAlignment="Center">打开</TextBlock>
+                </StackPanel>
+            </Button>
+            <Separator />
+            <Button x:Name="BtnAdd" ToolTip="添加文件到压缩包" Click="BtnAdd_Click"
+                    IsEnabled="False" MinWidth="60">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📦" FontSize="16" />
+                    <TextBlock Margin="4,0,0,0" VerticalAlignment="Center">添加</TextBlock>
+                </StackPanel>
+            </Button>
+            <Button x:Name="BtnExtract" ToolTip="解压到指定目录" Click="BtnExtract_Click"
+                    IsEnabled="False" MinWidth="60">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📤" FontSize="16" />
+                    <TextBlock Margin="4,0,0,0" VerticalAlignment="Center">解压到</TextBlock>
+                </StackPanel>
+            </Button>
+            <Button x:Name="BtnExtractHere" ToolTip="解压到当前目录" Click="BtnExtractHere_Click"
+                    IsEnabled="False" MinWidth="80">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📥" FontSize="16" />
+                    <TextBlock Margin="4,0,0,0" VerticalAlignment="Center">解压到当前</TextBlock>
+                </StackPanel>
+            </Button>
+            <Separator />
+            <Button x:Name="BtnTest" ToolTip="测试压缩包完整性" Click="BtnTest_Click"
+                    IsEnabled="False" MinWidth="60">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="✅" FontSize="16" />
+                    <TextBlock Margin="4,0,0,0" VerticalAlignment="Center">测试</TextBlock>
+                </StackPanel>
+            </Button>
+            <Button x:Name="BtnDelete" ToolTip="删除选中文件" Click="BtnDelete_Click"
+                    IsEnabled="False" MinWidth="60">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🗑️" FontSize="16" />
+                    <TextBlock Margin="4,0,0,0" VerticalAlignment="Center">删除</TextBlock>
+                </StackPanel>
+            </Button>
+            <Separator />
+            <Button x:Name="BtnInfo" ToolTip="压缩包信息" Click="BtnInfo_Click"
+                    IsEnabled="False" MinWidth="60">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="ℹ️" FontSize="16" />
+                    <TextBlock Margin="4,0,0,0" VerticalAlignment="Center">信息</TextBlock>
+                </StackPanel>
+            </Button>
+            <!-- 右侧弹性区 -->
+            <Separator />
+            <Label x:Name="ToolbarVersion" Content="v1.0.0"
+                   Foreground="Gray" FontSize="11"
+                   VerticalAlignment="Center" />
+        </ToolBar>
+
+        <!-- ════════ 地址栏 ════════ -->
+        <Border DockPanel.Dock="Top"
+                Background="#F0F0F0" Padding="8,4">
+            <DockPanel LastChildFill="True">
+                <TextBlock Text="📁" FontSize="15"
+                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBox x:Name="TbPath"
+                         Text="(点击「打开」选择压缩包，或将文件拖拽到此处)"
+                         IsReadOnly="True"
+                         BorderThickness="0"
+                         VerticalAlignment="Center"
+                         Background="Transparent"
+                         Foreground="Gray"
+                         FontSize="13" />
+            </DockPanel>
+        </Border>
+
+        <!-- ════════ 主体区域 ════════ -->
+        <Grid DockPanel.Dock="Top">
+            <ListView x:Name="FileList"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      SelectionMode="Extended"
+                      Background="White"
+                      BorderThickness="0">
+                <ListView.View>
+                    <GridView AllowsColumnReorder="True">
+                        <GridViewColumn Header="名称" Width="280">
+                            <GridViewColumn.HeaderContainerStyle>
+                                <Style TargetType="GridViewColumnHeader">
+                                    <Setter Property="HorizontalContentAlignment" Value="Left" />
+                                </Style>
+                            </GridViewColumn.HeaderContainerStyle>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding IconKey, Converter={StaticResource IconConverter}}"
+                                                   FontSize="20" />
+                                        <TextBlock Text="{Binding FileName}"
+                                                   Margin="8,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="大小" Width="100"
+                                        DisplayMemberBinding="{Binding UncompressedSizeDisplay}">
+                            <GridViewColumn.HeaderContainerStyle>
+                                <Style TargetType="GridViewColumnHeader">
+                                    <Setter Property="HorizontalContentAlignment" Value="Right" />
+                                </Style>
+                            </GridViewColumn.HeaderContainerStyle>
+                        </GridViewColumn>
+                        <GridViewColumn Header="压缩后" Width="100"
+                                        DisplayMemberBinding="{Binding CompressedSizeDisplay}">
+                            <GridViewColumn.HeaderContainerStyle>
+                                <Style TargetType="GridViewColumnHeader">
+                                    <Setter Property="HorizontalContentAlignment" Value="Right" />
+                                </Style>
+                            </GridViewColumn.HeaderContainerStyle>
+                        </GridViewColumn>
+                        <GridViewColumn Header="比率" Width="80"
+                                        DisplayMemberBinding="{Binding CompressionRatio, Converter={StaticResource RatioConverter}}">
+                            <GridViewColumn.HeaderContainerStyle>
+                                <Style TargetType="GridViewColumnHeader">
+                                    <Setter Property="HorizontalContentAlignment" Value="Right" />
+                                </Style>
+                            </GridViewColumn.HeaderContainerStyle>
+                        </GridViewColumn>
+                        <GridViewColumn Header="修改日期" Width="160"
+                                        DisplayMemberBinding="{Binding ModifiedDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
+                        <GridViewColumn Header="CRC32" Width="90"
+                                        DisplayMemberBinding="{Binding Crc}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+
+            <!-- 空状态覆盖层 (在 ListView 之上) -->
+            <Border x:Name="EmptyOverlay"
+                    Visibility="Visible"
+                    Background="White"
+                    IsHitTestVisible="False"
+                    MouseDown="EmptyOverlay_MouseDown">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Cursor="Hand">
+                    <TextBlock Text="🗜️" FontSize="64" HorizontalAlignment="Center" />
+                    <TextBlock Text="拖拽压缩文件到此处打开"
+                               Foreground="Gray"
+                               FontSize="18" Margin="0,12,0,0"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="或点击此处打开压缩包"
+                               Foreground="LightGray"
+                               FontSize="13" Margin="0,4,0,0"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ════════ 状态栏 ════════ -->
+        <StatusBar DockPanel.Dock="Bottom" Background="#F0F0F0">
+            <StatusBar.Items>
+                <StatusBarItem>
+                    <TextBlock x:Name="StatusText" Text="就绪" FontSize="12" />
+                </StatusBarItem>
+                <StatusBarItem HorizontalContentAlignment="Right">
+                    <TextBlock x:Name="StatusCount" Text="" FontSize="12" />
+                </StatusBarItem>
+            </StatusBar.Items>
+        </StatusBar>
+    </DockPanel>
+</Window>
