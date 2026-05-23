@@ -185,25 +185,18 @@ Section "Uninstall"
         DeleteRegKey HKCR "AllFilesystemObjects\shell\CompressProAdd"
     done_context:
 
-    ; ── 删除文件关联 ──
-    !macro DeleteAssoc ext progid
-        ReadRegDWORD $0 HKLM "${REG_INSTALL}" "Assoc_${progid}"
-        IntCmp $0 1 done_${progid}
-            DeleteRegKey HKCR "${ext}" ""
-        done_${progid}:
-    !macroend
-
-    !insertmacro DeleteAssoc ".7z"   "7z"
-    !insertmacro DeleteAssoc ".zip"  "Zip"
-    !insertmacro DeleteAssoc ".rar"  "Rar"
-    !insertmacro DeleteAssoc ".tar"  "Tar"
-    !insertmacro DeleteAssoc ".gz"   "Tar"
-    !insertmacro DeleteAssoc ".tgz"  "Tar"
-    !insertmacro DeleteAssoc ".bz2"  "Tar"
-    !insertmacro DeleteAssoc ".iso"  "Other"
-    !insertmacro DeleteAssoc ".cab"  "Other"
-    !insertmacro DeleteAssoc ".wim"  "Other"
-    !insertmacro DeleteAssoc ".vhd"  "Other"
+    ; ── 删除文件关联 (不查注册表，直接清所有可能项) ──
+    DeleteRegKey HKCR ".7z"
+    DeleteRegKey HKCR ".zip"
+    DeleteRegKey HKCR ".rar"
+    DeleteRegKey HKCR ".tar"
+    DeleteRegKey HKCR ".gz"
+    DeleteRegKey HKCR ".tgz"
+    DeleteRegKey HKCR ".bz2"
+    DeleteRegKey HKCR ".iso"
+    DeleteRegKey HKCR ".cab"
+    DeleteRegKey HKCR ".wim"
+    DeleteRegKey HKCR ".vhd"
 
     DeleteRegKey HKCR "CompressPro.7z"
     DeleteRegKey HKCR "CompressPro.Zip"
