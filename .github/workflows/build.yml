@@ -29,18 +29,34 @@ jobs:
         shell: pwsh
         run: |
           $ver = "2601"  # 7-Zip version, check https://www.7-zip.org/download.html
-          Write-Host "Downloading 7z$ver-extra.7z ..."
-          Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z$ver-extra.7z" `
-            -OutFile "$env:TEMP\7z$ver-extra.7z" -UseBasicParsing
+          $url = "https://www.7-zip.org/a/7z$ver-extra.7z"
+          $archive = "$env:TEMP\7z$ver-extra.7z"
 
-          Write-Host "Extracting ..."
-          7z x "$env:TEMP\7z$ver-extra.7z" -o"$env:TEMP\7z-extra" -y | Out-Null
+          Write-Host "Downloading $url ..."
+          Invoke-WebRequest -Uri $url -OutFile $archive -UseBasicParsing
 
-          Write-Host "Copying to external/ ..."
-          New-Item -ItemType Directory -Force -Path "external"
-          Copy-Item "$env:TEMP\7z-extra\x64\7z.dll" "external\" -Force
-          Copy-Item "$env:TEMP\7z-extra\x64\7z.exe" "external\" -Force
-          Write-Host "7z.dll ready: $(Get-Item 'external\7z.dll').Length bytes"
+          Write-Host "Extracting to $env:TEMP\7z-extra ..."
+          & 7z x $archive -o"$env:TEMP\7z-extra" -y | Out-Null
+
+          # Find 7z.dll wherever it landed
+          New-Item -ItemType Directory -Force -Path "external" | Out-Null
+          $dll = Get-ChildItem -Path "$env:TEMP\7z-extra" -Recurse -Filter "7z.dll" | Select-Object -First 1
+          $exe = Get-ChildItem -Path "$env:TEMP\7z-extra" -Recurse -Filter "7z.exe" | Select-Object -First 1
+
+          if ($dll) {
+              Copy-Item $dll.FullName "external\7z.dll" -Force
+              Write-Host "[OK] 7z.dll from $($dll.FullName)"
+          } else {
+              Write-Host "[ERROR] 7z.dll not found in extracted files"
+              Get-ChildItem -Path "$env:TEMP\7z-extra" -Recurse | Select-Object FullName | Out-Host
+              exit 1
+          }
+          if ($exe) {
+              Copy-Item $exe.FullName "external\7z.exe" -Force
+              Write-Host "[OK] 7z.exe from $($exe.FullName)"
+          }
+
+          Write-Host "[OK] 7z.dll size: $((Get-Item 'external\7z.dll').Length) bytes"
 
       - name: Restore NuGet packages
         run: dotnet restore
