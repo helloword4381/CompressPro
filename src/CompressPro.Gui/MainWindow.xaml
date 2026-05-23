@@ -5,7 +5,10 @@
         Title="CompressPro"
         Width="960" Height="640"
         MinWidth="720" MinHeight="480"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Microsoft YaHei, SimSun, sans-serif"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
 
     <Window.Resources>
         <conv:FileSizeConverter x:Key="FileSizeConverter" />
