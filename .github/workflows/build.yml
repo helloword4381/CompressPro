@@ -63,28 +63,15 @@ jobs:
           Copy-Item "external\7z.exe" "$out\" -Force
           Write-Host "[OK] Dependencies copied to $out"
 
-      # ─── 安装 NSIS (便携版) + 构建安装包 ───
-      - name: Build installer with NSIS
+      # ─── 构建安装包 (NSIS) ───
+      - name: Build installer
         shell: pwsh
         run: |
-          # Download NSIS portable
-          $nsisUrl = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09.zip/download"
-          $nsisZip = "$env:TEMP\nsis.zip"
-          $nsisDir = "$env:TEMP\nsis-portable"
+          # windows-latest has choco pre-installed
+          choco install nsis -y --no-progress --limit-output 2>$null
+          $env:Path += ";${env:ProgramFiles(x86)}\NSIS"
 
-          Write-Host "Downloading NSIS portable ..."
-          Invoke-WebRequest -Uri $nsisUrl -OutFile $nsisZip -UseBasicParsing
-
-          Write-Host "Extracting ..."
-          Expand-Archive -Path $nsisZip -DestinationPath $nsisDir -Force
-
-          $makensis = Get-ChildItem -Path $nsisDir -Recurse -Filter "makensis.exe" | Select-Object -First 1
-          if (-not $makensis) { Write-Host "[ERROR] makensis.exe not found"; exit 1 }
-
-          Write-Host "[OK] NSIS: $($makensis.FullName)"
-
-          # Build the installer
-          & $makensis.FullName "installer\setup.nsi"
+          makensis "installer\setup.nsi"
           if (Test-Path "installer\CompressPro_Setup.exe") {
               Copy-Item "installer\CompressPro_Setup.exe" "CompressPro_Setup.exe" -Force
               $size = (Get-Item "CompressPro_Setup.exe").Length
