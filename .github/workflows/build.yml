@@ -1,16 +1,16 @@
-name: Build CompressPro
+name: Build CompressPro Installer
 
 on:
-  workflow_dispatch:      # 手动触发
+  workflow_dispatch:
   push:
-    branches: [main]      # push 到 main 时自动构建
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
   build:
-    runs-on: windows-latest   # WPF 需要 Windows
-    timeout-minutes: 15
+    runs-on: windows-latest
+    timeout-minutes: 20
 
     permissions:
       contents: write
@@ -25,72 +25,108 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Download 7z.dll + 7z.exe (7-Zip Extra)
+      # ─── 下载 7z.dll ───
+      - name: Download 7z.dll/7z.exe
         shell: pwsh
         run: |
-          $ver = "2601"  # 7-Zip version, check https://www.7-zip.org/download.html
+          $ver = "2601"
           $url = "https://www.7-zip.org/a/7z$ver-extra.7z"
           $archive = "$env:TEMP\7z$ver-extra.7z"
 
           Write-Host "Downloading $url ..."
           Invoke-WebRequest -Uri $url -OutFile $archive -UseBasicParsing
 
-          Write-Host "Extracting to $env:TEMP\7z-extra ..."
+          Write-Host "Extracting ..."
           & 7z x $archive -o"$env:TEMP\7z-extra" -y | Out-Null
 
-          # Find 7z.dll wherever it landed
           New-Item -ItemType Directory -Force -Path "external" | Out-Null
-          $dll = Get-ChildItem -Path "$env:TEMP\7z-extra" -Recurse -Include "7z.dll","7za.dll" | Select-Object -First 1
-          $exe = Get-ChildItem -Path "$env:TEMP\7z-extra" -Recurse -Include "7z.exe","7za.exe" | Select-Object -First 1
+          $dll = Get-ChildItem "$env:TEMP\7z-extra" -Recurse -Include "7z.dll","7za.dll" | Select-Object -First 1
+          $exe = Get-ChildItem "$env:TEMP\7z-extra" -Recurse -Include "7z.exe","7za.exe" | Select-Object -First 1
 
-          if ($dll) {
-              Copy-Item $dll.FullName "external\7z.dll" -Force
-              Write-Host "[OK] 7z.dll from $($dll.FullName)"
-          } else {
-              Write-Host "[ERROR] 7z.dll not found in extracted files"
-              Get-ChildItem -Path "$env:TEMP\7z-extra" -Recurse | Select-Object FullName | Out-Host
-              exit 1
-          }
-          if ($exe) {
-              Copy-Item $exe.FullName "external\7z.exe" -Force
-              Write-Host "[OK] 7z.exe from $($exe.FullName)"
-          }
+          if ($dll) { Copy-Item $dll.FullName "external\7z.dll" -Force; Write-Host "[OK] 7z.dll" }
+          else { Write-Host "[ERROR] 7z.dll not found"; exit 1 }
+          if ($exe) { Copy-Item $exe.FullName "external\7z.exe" -Force; Write-Host "[OK] 7z.exe" }
 
-          Write-Host "[OK] 7z.dll size: $((Get-Item 'external\7z.dll').Length) bytes"
-
-      - name: Restore NuGet packages
+      # ─── 编译程序 ───
+      - name: Restore
         run: dotnet restore
 
       - name: Build Release
         run: dotnet build -c Release --no-restore
 
-      - name: Upload build artifacts
+      # ─── 拷贝依赖到输出目录 ───
+      - name: Copy runtime deps to output
+        shell: pwsh
+        run: |
+          $out = "src\CompressPro.Gui\bin\Release\net8.0-windows"
+          Copy-Item "external\7z.dll" "$out\" -Force
+          Copy-Item "external\7z.exe" "$out\" -Force
+          Write-Host "[OK] Dependencies copied to $out"
+
+      # ─── 安装 NSIS (便携版) + 构建安装包 ───
+      - name: Build installer with NSIS
+        shell: pwsh
+        run: |
+          # Download NSIS portable
+          $nsisUrl = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09.zip/download"
+          $nsisZip = "$env:TEMP\nsis.zip"
+          $nsisDir = "$env:TEMP\nsis-portable"
+
+          Write-Host "Downloading NSIS portable ..."
+          Invoke-WebRequest -Uri $nsisUrl -OutFile $nsisZip -UseBasicParsing
+
+          Write-Host "Extracting ..."
+          Expand-Archive -Path $nsisZip -DestinationPath $nsisDir -Force
+
+          $makensis = Get-ChildItem -Path $nsisDir -Recurse -Filter "makensis.exe" | Select-Object -First 1
+          if (-not $makensis) { Write-Host "[ERROR] makensis.exe not found"; exit 1 }
+
+          Write-Host "[OK] NSIS: $($makensis.FullName)"
+
+          # Build the installer
+          & $makensis.FullName "installer\setup.nsi"
+          if (Test-Path "installer\CompressPro_Setup.exe") {
+              Copy-Item "installer\CompressPro_Setup.exe" "CompressPro_Setup.exe" -Force
+              $size = (Get-Item "CompressPro_Setup.exe").Length
+              Write-Host "[OK] Installer built: $size bytes"
+          } else {
+              Write-Host "[ERROR] Installer build failed"
+              exit 1
+          }
+
+      # ─── 上传安装包 ───
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: CompressPro-Release
-          path: src/CompressPro.Gui/bin/Release/net8.0-windows/
-          retention-days: 30
+          name: CompressPro_Setup
+          path: CompressPro_Setup.exe
+          retention-days: 90
 
-      # ─── 可选: 自动创建 Release ───
-      - name: Create Release (on push only)
+      # ─── 创建 Release ───
+      - name: Create Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: 构建 #${{ github.run_number }}
+          tag_name: v1.0.${{ github.run_number }}
+          name: CompressPro v1.0.${{ github.run_number }}
           body: |
-            🗜️ CompressPro 自动构建
-            
-            - 构建时间: ${{ github.event.head_commit.timestamp }}
-            - 提交: ${{ github.sha }}
-            
-            ## 下载
-            解压后直接运行 CompressPro.exe，无需安装 7-Zip。
-            已内置 7z.dll + 7z.exe。
-          files: |
-            src/CompressPro.Gui/bin/Release/net8.0-windows/CompressPro.exe
-            src/CompressPro.Gui/bin/Release/net8.0-windows/*.dll
-            src/CompressPro.Gui/bin/Release/net8.0-windows/*.json
+            🗜️ **CompressPro** - Lightweight archive utility
+
+            ## Install
+            Download **CompressPro_Setup.exe**, run it, and follow the wizard.
+            No need to install 7-Zip separately - everything is bundled.
+
+            ## What's new
+            - Auto-build: ${{ github.sha }}
+            - Build time: ${{ github.event.head_commit.timestamp }}
+
+            ## Features
+            - Context menu integration (right-click)
+            - File association (7z/zip/rar/tar/iso...)
+            - AES-256 encryption
+            - 30+ archive formats via 7-Zip engine
+            - Control Panel uninstall support
+          files: CompressPro_Setup.exe
           fail_on_unmatched_files: false
           generate_release_notes: false
           make_latest: true

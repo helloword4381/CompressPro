@@ -1,7 +1,7 @@
 ; ══════════════════════════════════════════════════════════
-;  CompressPro NSIS 安装脚本
-;  功能: 安装主程序 + 右键菜单 + 文件关联 + 卸载
-;  编译: makensis setup.nsi
+;  CompressPro Installer (NSIS)
+;  Build:  makensis setup.nsi
+;  Output: CompressPro_Setup.exe
 ; ══════════════════════════════════════════════════════════
 
 !include "MUI2.nsh"
@@ -15,152 +15,219 @@ InstallDir "$PROGRAMFILES64\CompressPro"
 InstallDirRegKey HKLM "Software\CompressPro" "InstallDir"
 RequestExecutionLevel admin
 
-; ─── 版本 ───
 !define PRODUCT_NAME "CompressPro"
 !define PRODUCT_VERSION "1.0.0"
 !define PRODUCT_PUBLISHER "CompressPro"
 !define PRODUCT_WEB_SITE "https://github.com/compresspro"
 
+; ─── 安装选项注册表路径 (存用户选择，卸载时读取) ───
+!define REG_ROOT "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro"
+!define REG_INSTALL "Software\CompressPro"
+
 ; ─── 界面 ───
 !define MUI_ABORTWARNING
-!define MUI_ICON "..\src\CompressPro.Gui\Resources\app.ico"
-!define MUI_UNICON "..\src\CompressPro.Gui\Resources\app.ico"
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_BITMAP "header.bmp"
 !define MUI_WELCOMEFINISHPAGE_BITMAP "welcome.bmp"
 
 ; ─── 页面 ───
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "..\LICENSE"
+!insertmacro MUI_PAGE_COMPONENTS      ; ← 组件选择页（核心 + 右键菜单 + 格式关联）
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
+
 !define MUI_FINISHPAGE_RUN "$INSTDIR\CompressPro.exe"
-!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\README.txt"
+!define MUI_FINISHPAGE_RUN_TEXT "启动 CompressPro"
+!define MUI_FINISHPAGE_SHOWREADME ""
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 
-!insertmacro MUI_LANGUAGE "SimpChinese"
+; ─── 语言 (只用英文避免编码问题) ───
 !insertmacro MUI_LANGUAGE "English"
 
-; ─── 安装段 ───
-Section "Install" SecInstall
+; ══════════════════════════════════════════════════════════
+;  组件定义
+; ══════════════════════════════════════════════════════════
+
+; 主程序（必选）
+Section "CompressPro Core" SEC_CORE
+    SectionIn RO
     SetOutPath "$INSTDIR"
 
-    ; 复制主程序
+    ; 复制程序文件
     File "..\src\CompressPro.Gui\bin\Release\net8.0-windows\CompressPro.exe"
     File "..\src\CompressPro.Gui\bin\Release\net8.0-windows\*.dll"
     File "..\src\CompressPro.Gui\bin\Release\net8.0-windows\*.json"
 
-    ; 复制 7z.dll (从外部依赖)
-    File "..\external\7z.dll"
+    ; 写卸载信息
+    WriteUninstaller "$INSTDIR\Uninstall.exe"
+    WriteRegStr HKLM "${REG_ROOT}" "DisplayName" "CompressPro - Archive Utility"
+    WriteRegStr HKLM "${REG_ROOT}" "DisplayVersion" "${PRODUCT_VERSION}"
+    WriteRegStr HKLM "${REG_ROOT}" "Publisher" "${PRODUCT_PUBLISHER}"
+    WriteRegStr HKLM "${REG_ROOT}" "UninstallString" "$INSTDIR\Uninstall.exe"
+    WriteRegStr HKLM "${REG_ROOT}" "DisplayIcon" "$INSTDIR\CompressPro.exe"
+    WriteRegDWORD HKLM "${REG_ROOT}" "NoModify" 1
+    WriteRegDWORD HKLM "${REG_ROOT}" "NoRepair" 1
+    WriteRegStr HKLM "${REG_ROOT}" "InstallLocation" "$INSTDIR"
+    WriteRegStr HKLM "${REG_ROOT}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
+    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+    WriteRegDWORD HKLM "${REG_ROOT}" "EstimatedSize" "$0"
 
-    ; ─── 右键菜单 (注册表) ───
+    ; 快捷方式
+    CreateDirectory "$SMPROGRAMS\CompressPro"
+    CreateShortCut "$SMPROGRAMS\CompressPro\CompressPro.lnk" "$INSTDIR\CompressPro.exe"
+    CreateShortCut "$SMPROGRAMS\CompressPro\Uninstall CompressPro.lnk" "$INSTDIR\Uninstall.exe"
+    CreateShortCut "$DESKTOP\CompressPro.lnk" "$INSTDIR\CompressPro.exe"
 
-    ; 1. "用 CompressPro 打开" (所有文件)
-    WriteRegStr HKCR "*\shell\CompressPro" "" "用 CompressPro 打开"
+    ; 记录安装路径
+    WriteRegStr HKLM "${REG_INSTALL}" "InstallDir" "$INSTDIR"
+SectionEnd
+
+; ─── 右键菜单 ───
+Section "Context Menu (right-click)" SEC_CONTEXT
+    ; 存卸载标记
+    WriteRegDWORD HKLM "${REG_INSTALL}" "InstalledContext" 1
+
+    ; "Open with CompressPro" - all files
+    WriteRegStr HKCR "*\shell\CompressPro" "" "Open with CompressPro"
     WriteRegStr HKCR "*\shell\CompressPro" "Icon" "$INSTDIR\CompressPro.exe,0"
     WriteRegStr HKCR "*\shell\CompressPro\command" "" '"$INSTDIR\CompressPro.exe" "open" "%1"'
 
-    ; 2. "解压到..." (压缩包专有)
-    WriteRegStr HKCR "7-Zip.7z\shell\CompressProExtract" "" "解压到..."
-    WriteRegStr HKCR "7-Zip.7z\shell\CompressProExtract" "Icon" "$INSTDIR\CompressPro.exe,0"
-    WriteRegStr HKCR "7-Zip.7z\shell\CompressProExtract\command" "" '"$INSTDIR\CompressPro.exe" "extract" "%1"'
+    ; "Extract to..." - archives
+    WriteRegStr HKCR "CompressPro.7z\shell\extract" "" "Extract to..."
+    WriteRegStr HKCR "CompressPro.7z\shell\extract" "Icon" "$INSTDIR\CompressPro.exe,0"
+    WriteRegStr HKCR "CompressPro.7z\shell\extract\command" "" '"$INSTDIR\CompressPro.exe" "extract" "%1"'
 
-    ; 3. "添加到压缩包..." (任意文件/文件夹)
-    WriteRegStr HKCR "AllFilesystemObjects\shell\CompressProAdd" "" "添加到 CompressPro 压缩包..."
+    ; "Extract here" - archives
+    WriteRegStr HKCR "CompressPro.7z\shell\extracthere" "" "Extract Here"
+    WriteRegStr HKCR "CompressPro.7z\shell\extracthere" "Icon" "$INSTDIR\CompressPro.exe,0"
+    WriteRegStr HKCR "CompressPro.7z\shell\extracthere\command" "" '"$INSTDIR\CompressPro.exe" "extracthere" "%1"'
+
+    ; "Add to archive..." - any files/folders
+    WriteRegStr HKCR "AllFilesystemObjects\shell\CompressProAdd" "" "Add to CompressPro archive..."
     WriteRegStr HKCR "AllFilesystemObjects\shell\CompressProAdd" "Icon" "$INSTDIR\CompressPro.exe,0"
     WriteRegStr HKCR "AllFilesystemObjects\shell\CompressProAdd\command" "" '"$INSTDIR\CompressPro.exe" "add" "%1"'
-
-    ; 4. "解压到当前目录" (压缩包右键)
-    WriteRegStr HKCR "7-Zip.7z\shell\CompressProExtractHere" "" "解压到当前目录"
-    WriteRegStr HKCR "7-Zip.7z\shell\CompressProExtractHere" "Icon" "$INSTDIR\CompressPro.exe,0"
-    WriteRegStr HKCR "7-Zip.7z\shell\CompressProExtractHere\command" "" '"$INSTDIR\CompressPro.exe" "extracthere" "%1"'
-
-    ; ─── 文件关联 ───
-    WriteRegStr HKCR ".7z" "" "CompressPro.7z"
-    WriteRegStr HKCR "CompressPro.7z" "" "7-Zip Archive"
-    WriteRegStr HKCR "CompressPro.7z\DefaultIcon" "" "$INSTDIR\CompressPro.exe,1"
-    WriteRegStr HKCR "CompressPro.7z\shell\open\command" "" '"$INSTDIR\CompressPro.exe" "open" "%1"'
-
-    WriteRegStr HKCR ".zip" "" "CompressPro.Zip"
-    WriteRegStr HKCR "CompressPro.Zip" "" "ZIP Archive"
-    WriteRegStr HKCR "CompressPro.Zip\DefaultIcon" "" "$INSTDIR\CompressPro.exe,2"
-    WriteRegStr HKCR "CompressPro.Zip\shell\open\command" "" '"$INSTDIR\CompressPro.exe" "open" "%1"'
-
-    WriteRegStr HKCR ".rar" "" "CompressPro.Rar"
-    WriteRegStr HKCR "CompressPro.Rar" "" "RAR Archive"
-    WriteRegStr HKCR "CompressPro.Rar\DefaultIcon" "" "$INSTDIR\CompressPro.exe,3"
-    WriteRegStr HKCR "CompressPro.Rar\shell\open\command" "" '"$INSTDIR\CompressPro.exe" "open" "%1"'
-
-    ; ─── 卸载信息 ───
-    WriteUninstaller "$INSTDIR\Uninstall.exe"
-
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro" \
-        "DisplayName" "CompressPro - 轻量压缩解压工具"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro" \
-        "DisplayVersion" "${PRODUCT_VERSION}"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro" \
-        "Publisher" "${PRODUCT_PUBLISHER}"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro" \
-        "UninstallString" "$INSTDIR\Uninstall.exe"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro" \
-        "DisplayIcon" "$INSTDIR\CompressPro.exe"
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro" \
-        "NoModify" 1
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro" \
-        "NoRepair" 1
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro" \
-        "InstallLocation" "$INSTDIR"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro" \
-        "URLInfoAbout" "${PRODUCT_WEB_SITE}"
-
-    ; 计算安装大小
-    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro" \
-        "EstimatedSize" "$0"
-
-    ; ─── 快捷方式 ───
-    CreateDirectory "$SMPROGRAMS\CompressPro"
-    CreateShortCut "$SMPROGRAMS\CompressPro\CompressPro.lnk" "$INSTDIR\CompressPro.exe"
-    CreateShortCut "$SMPROGRAMS\CompressPro\卸载 CompressPro.lnk" "$INSTDIR\Uninstall.exe"
-    CreateShortCut "$DESKTOP\CompressPro.lnk" "$INSTDIR\CompressPro.exe"
-
-    ; ─── 环境变量 (自动添加到 PATH 可选) ───
-    ; WriteRegStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-    ;     "Path" "$INSTDIR;$PATH"
 SectionEnd
 
-; ─── 卸载段 ───
+; ─── 文件关联 ───
+SectionGroup /e "File Associations" SEC_GROUP_ASSOC
+
+    Section ".7z" SEC_7Z
+        WriteRegDWORD HKLM "${REG_INSTALL}" "Assoc_7z" 1
+        WriteRegStr HKCR ".7z" "" "CompressPro.7z"
+        WriteRegStr HKCR "CompressPro.7z" "" "7-Zip Archive"
+        WriteRegStr HKCR "CompressPro.7z\DefaultIcon" "" "$INSTDIR\CompressPro.exe,1"
+        WriteRegStr HKCR "CompressPro.7z\shell\open\command" "" '"$INSTDIR\CompressPro.exe" "open" "%1"'
+    SectionEnd
+
+    Section ".zip" SEC_ZIP
+        WriteRegDWORD HKLM "${REG_INSTALL}" "Assoc_Zip" 1
+        WriteRegStr HKCR ".zip" "" "CompressPro.Zip"
+        WriteRegStr HKCR "CompressPro.Zip" "" "ZIP Archive"
+        WriteRegStr HKCR "CompressPro.Zip\DefaultIcon" "" "$INSTDIR\CompressPro.exe,2"
+        WriteRegStr HKCR "CompressPro.Zip\shell\open\command" "" '"$INSTDIR\CompressPro.exe" "open" "%1"'
+    SectionEnd
+
+    Section ".rar" SEC_RAR
+        WriteRegDWORD HKLM "${REG_INSTALL}" "Assoc_Rar" 1
+        WriteRegStr HKCR ".rar" "" "CompressPro.Rar"
+        WriteRegStr HKCR "CompressPro.Rar" "" "RAR Archive"
+        WriteRegStr HKCR "CompressPro.Rar\DefaultIcon" "" "$INSTDIR\CompressPro.exe,3"
+        WriteRegStr HKCR "CompressPro.Rar\shell\open\command" "" '"$INSTDIR\CompressPro.exe" "open" "%1"'
+    SectionEnd
+
+    Section ".tar / .tar.gz / .tar.bz2" SEC_TAR
+        WriteRegDWORD HKLM "${REG_INSTALL}" "Assoc_Tar" 1
+        WriteRegStr HKCR ".tar" "" "CompressPro.Tar"
+        WriteRegStr HKCR "CompressPro.Tar\DefaultIcon" "" "$INSTDIR\CompressPro.exe,4"
+        WriteRegStr HKCR "CompressPro.Tar\shell\open\command" "" '"$INSTDIR\CompressPro.exe" "open" "%1"'
+        WriteRegStr HKCR ".gz" "" "CompressPro.Gz"
+        WriteRegStr HKCR ".tgz" "" "CompressPro.Tgz"
+        WriteRegStr HKCR ".bz2" "" "CompressPro.Bz2"
+    SectionEnd
+
+    Section ".iso / .cab / .wim" SEC_OTHER
+        WriteRegDWORD HKLM "${REG_INSTALL}" "Assoc_Other" 1
+        WriteRegStr HKCR ".iso" "" "CompressPro.Iso"
+        WriteRegStr HKCR ".cab" "" "CompressPro.Cab"
+        WriteRegStr HKCR ".wim" "" "CompressPro.Wim"
+        WriteRegStr HKCR ".vhd" "" "CompressPro.Vhd"
+    SectionEnd
+
+SectionGroupEnd
+
+; ─── 安装后刷新 ───
+Section -PostInstall
+    ; 通知 Explorer 刷新图标/关联
+    System::Call 'shell32.dll::SHChangeNotify(l, l, i, i) v (0x08000000, 0, 0, 0)'
+SectionEnd
+
+; ══════════════════════════════════════════════════════════
+;  卸载
+; ══════════════════════════════════════════════════════════
+
 Section "Uninstall"
-    ; 删除文件
+    ; ── 删除程序文件 ──
+    ReadRegStr $INSTDIR HKLM "${REG_INSTALL}" "InstallDir"
     Delete "$INSTDIR\CompressPro.exe"
     Delete "$INSTDIR\*.dll"
     Delete "$INSTDIR\*.json"
-    Delete "$INSTDIR\*.pdb"
-    Delete "$INSTDIR\Uninstall.exe"
-    RMDir "$INSTDIR"
+    RMDir /r "$INSTDIR"
 
-    ; 删除右键菜单
-    DeleteRegKey HKCR "*\shell\CompressPro"
-    DeleteRegKey HKCR "7-Zip.7z\shell\CompressProExtract"
-    DeleteRegKey HKCR "7-Zip.7z\shell\CompressProExtractHere"
-    DeleteRegKey HKCR "AllFilesystemObjects\shell\CompressProAdd"
+    ; ── 删除右键菜单 ──
+    ReadRegDWORD $0 HKLM "${REG_INSTALL}" "InstalledContext"
+    IntCmp $0 1 done_context
+        DeleteRegKey HKCR "*\shell\CompressPro"
+        DeleteRegKey HKCR "CompressPro.7z\shell\extract"
+        DeleteRegKey HKCR "CompressPro.7z\shell\extracthere"
+        DeleteRegKey HKCR "AllFilesystemObjects\shell\CompressProAdd"
+    done_context:
 
-    ; 删除文件关联
+    ; ── 删除文件关联 ──
+    !macro DeleteAssoc ext progid
+        ReadRegDWORD $0 HKLM "${REG_INSTALL}" "Assoc_${progid}"
+        IntCmp $0 1 done_${progid}
+            DeleteRegKey HKCR "${ext}" ""
+        done_${progid}:
+    !macroend
+
+    !insertmacro DeleteAssoc ".7z"   "7z"
+    !insertmacro DeleteAssoc ".zip"  "Zip"
+    !insertmacro DeleteAssoc ".rar"  "Rar"
+    !insertmacro DeleteAssoc ".tar"  "Tar"
+    !insertmacro DeleteAssoc ".gz"   "Tar"
+    !insertmacro DeleteAssoc ".tgz"  "Tar"
+    !insertmacro DeleteAssoc ".bz2"  "Tar"
+    !insertmacro DeleteAssoc ".iso"  "Other"
+    !insertmacro DeleteAssoc ".cab"  "Other"
+    !insertmacro DeleteAssoc ".wim"  "Other"
+    !insertmacro DeleteAssoc ".vhd"  "Other"
+
     DeleteRegKey HKCR "CompressPro.7z"
     DeleteRegKey HKCR "CompressPro.Zip"
     DeleteRegKey HKCR "CompressPro.Rar"
+    DeleteRegKey HKCR "CompressPro.Tar"
+    DeleteRegKey HKCR "CompressPro.Gz"
+    DeleteRegKey HKCR "CompressPro.Tgz"
+    DeleteRegKey HKCR "CompressPro.Bz2"
+    DeleteRegKey HKCR "CompressPro.Iso"
+    DeleteRegKey HKCR "CompressPro.Cab"
+    DeleteRegKey HKCR "CompressPro.Wim"
+    DeleteRegKey HKCR "CompressPro.Vhd"
 
-    ; 删除卸载信息
-    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\CompressPro"
-    DeleteRegKey HKLM "Software\CompressPro"
+    ; ── 删除卸载信息 ──
+    DeleteRegKey HKLM "${REG_ROOT}"
+    DeleteRegKey HKLM "${REG_INSTALL}"
 
-    ; 删除快捷方式
+    ; ── 删除快捷方式 ──
     Delete "$SMPROGRAMS\CompressPro\CompressPro.lnk"
-    Delete "$SMPROGRAMS\CompressPro\卸载 CompressPro.lnk"
+    Delete "$SMPROGRAMS\CompressPro\Uninstall CompressPro.lnk"
     RMDir "$SMPROGRAMS\CompressPro"
     Delete "$DESKTOP\CompressPro.lnk"
 
-    ; 刷新桌面图标 (通知 Explorer)
+    ; ── 刷新 Explorer ──
     System::Call 'shell32.dll::SHChangeNotify(l, l, i, i) v (0x08000000, 0, 0, 0)'
 SectionEnd

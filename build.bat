@@ -81,9 +81,27 @@ if exist "external\7z.exe" copy /y "external\7z.exe" "%OUT%\" >nul
 echo [OK] Dependencies copied
 echo.
 
+:: Step 5: Build installer (optional, if NSIS available)
+echo [5/5] Checking NSIS for installer build ...
+set "NSIS_PATH=C:\Program Files (x86)\NSIS\makensis.exe"
+if exist "%NSIS_PATH%" (
+    echo [*] Building setup.exe ...
+    "%NSIS_PATH%" "installer\setup.nsi"
+    if exist "installer\CompressPro_Setup.exe" (
+        copy /y "installer\CompressPro_Setup.exe" "%OUT%\" >nul
+        echo [OK] CompressPro_Setup.exe built
+    ) else (
+        echo [WARN] Installer build failed
+    )
+) else (
+    echo [SKIP] NSIS not found (install from https://nsis.sourceforge.io/ to build installer)
+)
+echo.
+
 echo ============================================
 echo  [SUCCESS] Build OK!
-echo   Output: %OUT%
-echo   Run:    %OUT%\CompressPro.exe
+echo   Output:    %OUT%
+echo   Run:       %OUT%\CompressPro.exe
+echo   Installer: %OUT%\CompressPro_Setup.exe  (if NSIS available)
 echo ============================================
 pause
