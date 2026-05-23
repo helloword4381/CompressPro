@@ -9,7 +9,8 @@ CompressPro 依赖 7z.dll 作为压缩解压引擎。
   程序会自动从安装目录加载 7z.dll
 
 方法二：从 7z SDK 获取
-  1. 下载 7-Zip Extra: https://7-zip.org/a/7z2409-extra.7z
+  1. 下载 7-Zip Extra: https://7-zip.org/a/7z2601-extra.7z
+     （版本号可能更新，以 https://www.7-zip.org/download.html 为准）
   2. 解压后复制 7z.dll 到本项目根目录
   3. 或放到 CompressPro.Gui\bin\Release\net8.0-windows\ 下
 

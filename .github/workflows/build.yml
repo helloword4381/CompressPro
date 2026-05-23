@@ -28,13 +28,13 @@ jobs:
       - name: Download 7z.dll + 7z.exe (7-Zip Extra)
         shell: pwsh
         run: |
-          Write-Host "Downloading 7z2409-extra.7z ..."
-          Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2409-extra.7z" `
-            -OutFile "$env:TEMP\7z2409-extra.7z" -UseBasicParsing
+          $ver = "2601"  # 7-Zip version, check https://www.7-zip.org/download.html
+          Write-Host "Downloading 7z$ver-extra.7z ..."
+          Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z$ver-extra.7z" `
+            -OutFile "$env:TEMP\7z$ver-extra.7z" -UseBasicParsing
 
           Write-Host "Extracting ..."
-          # GitHub Actions 的 windows-latest 预装了 7-Zip
-          7z x "$env:TEMP\7z2409-extra.7z" -o"$env:TEMP\7z-extra" -y | Out-Null
+          7z x "$env:TEMP\7z$ver-extra.7z" -o"$env:TEMP\7z-extra" -y | Out-Null
 
           Write-Host "Copying to external/ ..."
           New-Item -ItemType Directory -Force -Path "external"
