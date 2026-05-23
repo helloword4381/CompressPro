@@ -40,8 +40,8 @@ jobs:
 
           # Find 7z.dll wherever it landed
           New-Item -ItemType Directory -Force -Path "external" | Out-Null
-          $dll = Get-ChildItem -Path "$env:TEMP\7z-extra" -Recurse -Filter "7z.dll" | Select-Object -First 1
-          $exe = Get-ChildItem -Path "$env:TEMP\7z-extra" -Recurse -Filter "7z.exe" | Select-Object -First 1
+          $dll = Get-ChildItem -Path "$env:TEMP\7z-extra" -Recurse -Include "7z.dll","7za.dll" | Select-Object -First 1
+          $exe = Get-ChildItem -Path "$env:TEMP\7z-extra" -Recurse -Include "7z.exe","7za.exe" | Select-Object -First 1
 
           if ($dll) {
               Copy-Item $dll.FullName "external\7z.dll" -Force

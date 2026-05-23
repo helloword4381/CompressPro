@@ -47,7 +47,11 @@ if defined HAS_7Z (
 
     echo [3/3] Copying files ...
     del "7z%VER%-extra.7z" >nul 2>&1
-    if exist "x64\7z.dll" (
+    :: v26+ uses 7za.dll, older versions use 7z.dll
+    if exist "x64\7za.dll" (
+        copy /y "x64\7za.dll" "%DLL%" >nul
+        copy /y "x64\7za.exe" "%EXE%" >nul
+    ) else if exist "x64\7z.dll" (
         copy /y "x64\7z.dll" "%DLL%" >nul
         copy /y "x64\7z.exe" "%EXE%" >nul
         rmdir /s /q x86 >nul 2>&1

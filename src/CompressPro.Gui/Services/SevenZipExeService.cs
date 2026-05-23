@@ -28,10 +28,15 @@ public partial class SevenZipExeService : ISevenZipService
         if (File.Exists(bundled7z))
             return bundled7z;
 
-        // 2. 找 7z.dll + 准备用 SevenZipSharp → fallback to 7z.exe
+        // 1b. 也可能是 7za.exe (v26+ 重命名)
+        var bundled7za = Path.Combine(baseDir, "7za.exe");
+        if (File.Exists(bundled7za))
+            return bundled7za;
+
+        // 2. 找 7z.dll（自带的集成版）
         var bundledDll = Path.Combine(baseDir, "7z.dll");
         if (File.Exists(bundledDll))
-            return bundled7z; // 虽然 7z.exe 不在, 但 SevenZipService 会处理 7z.dll
+            return bundled7z;
 
         // 3. 系统安装的 7-Zip
         var candidates = new[]
