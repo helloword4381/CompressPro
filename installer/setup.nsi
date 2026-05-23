@@ -26,11 +26,10 @@ RequestExecutionLevel admin
 
 ; ─── 界面 ───
 !define MUI_ABORTWARNING
-!define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "header.bmp"
-!define MUI_WELCOMEFINISHPAGE_BITMAP "welcome.bmp"
+; Optional bitmaps (header.bmp / welcome.bmp) go here
 
 ; ─── 页面 ───
+; Welcome page uses default image
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "..\LICENSE"
 !insertmacro MUI_PAGE_COMPONENTS      ; ← 组件选择页（核心 + 右键菜单 + 格式关联）
